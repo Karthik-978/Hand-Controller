@@ -1,0 +1,261 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hand Controller | Gesture Interface</title>
+<style>
+:root{--bg:#080d18;--panel:#111c2d;--line:#24344c;--cyan:#53e4e8;--text:#eef5ff;--muted:#91a3bc;--green:#54e6a0}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 70% 0%,#123044 0,transparent 45%),var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;min-height:100vh}
+header{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5%;background:#080d18dd;position:sticky;top:0;z-index:5;backdrop-filter:blur(16px)}
+.brand{font-size:20px;font-weight:800;letter-spacing:-.7px}.brand span{color:var(--cyan)}
+.status{color:var(--muted);font-size:13px}.dot{display:inline-block;width:8px;height:8px;background:#65758b;border-radius:50%;margin-right:8px}
+main{max-width:1200px;margin:auto;padding:48px 24px}
+.hero{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:30px}
+.eyebrow{color:var(--cyan);font-size:12px;letter-spacing:2px;font-weight:800}
+h1{font-size:clamp(34px,5vw,55px);letter-spacing:-2px;margin:12px 0}
+p{color:var(--muted);line-height:1.65}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{border:0;border-radius:10px;padding:13px 19px;font-weight:750;cursor:pointer;transition:.2s}
+button:hover{transform:translateY(-2px)}
+.primary{background:var(--cyan);color:#06141c}
+.secondary{background:#1b2b40;color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.layout{display:grid;grid-template-columns:1fr 1.05fr;gap:20px}
+.panel{background:linear-gradient(145deg,#142238,#0e1828);border:1px solid var(--line);border-radius:18px;padding:20px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.panel-head h2{font-size:16px;margin:0}
+.tag{font-size:11px;color:var(--cyan);background:#183b49;padding:7px 10px;border-radius:30px}
+.camera{position:relative;background:#050a12;border-radius:13px;overflow:hidden;aspect-ratio:4/3}
+video,.overlay{position:absolute;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.overlay{inset:0}
+.camera-placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:20px}
+.camera-placeholder strong{display:block;color:var(--text);margin-bottom:8px}
+.camera-footer{display:flex;justify-content:space-between;margin-top:13px;font-size:12px;color:var(--muted)}
+.stage{height:300px;position:relative;overflow:hidden;border:1px solid #29445b;border-radius:13px;background:radial-gradient(circle at 50% 50%,#163044,#0a1423 75%)}
+.stage-grid{position:absolute;inset:0;opacity:.14;background-image:linear-gradient(#4b8b9b 1px,transparent 1px),linear-gradient(90deg,#4b8b9b 1px,transparent 1px);background-size:30px 30px}
+.demo-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:20px;pointer-events:none}
+.demo-content h3{margin:0;font-size:23px}
+.demo-content p{margin:0;font-size:13px}
+.demo-target{pointer-events:auto;position:relative;z-index:2;background:#17394a;color:var(--cyan);border:1px solid #32687a;padding:13px 19px;border-radius:10px}
+.demo-target.active{background:var(--green);color:#071a12}
+#cursor{display:none;position:absolute;z-index:4;width:19px;height:19px;border:3px solid white;background:var(--cyan);border-radius:50%;box-shadow:0 0 18px var(--cyan);pointer-events:none;transform:translate(-50%,-50%)}
+#cursor.pinch{background:var(--green);transform:translate(-50%,-50%) scale(.75)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}
+.stat{background:#0b1524;border:1px solid var(--line);border-radius:12px;padding:13px}
+.stat small{display:block;color:var(--muted);font-size:11px;margin-bottom:7px}
+.stat strong{font-size:18px}
+.instructions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.instruction{background:#101d2e;border:1px solid var(--line);border-radius:13px;padding:16px}
+.instruction b{color:var(--cyan);font-size:13px}
+.instruction p{font-size:12px;margin-bottom:0}
+footer{text-align:center;padding:30px;color:var(--muted);font-size:12px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.hero{align-items:start;flex-direction:column}.instructions{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}main{padding:28px 15px}header{padding:0 18px}}
+</style>
+</head>
+<body>
+<header>
+<div class="brand">HAND<span>CTRL.</span></div>
+<div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Camera disconnected</span></div>
+</header>
+<main>
+<section class="hero">
+<div>
+<div class="eyebrow">COMPUTER VISION / WEB EXPERIMENT</div>
+<h1>Your hands.<br><span style="color:var(--cyan)">Your control.</span></h1>
+<p>Control this interactive browser workspace using real-time hand tracking.<br>No mouse interaction required inside the demo area.</p>
+</div>
+<div class="actions">
+<button class="primary" id="startBtn">Start camera →</button>
+<button class="secondary" id="stopBtn" disabled>Stop</button>
+</div>
+</section>
+
+<section class="layout">
+<div class="panel">
+<div class="panel-head"><h2>Live camera tracking</h2><span class="tag" id="trackingTag">WAITING</span></div>
+<div class="camera">
+<video id="video" autoplay playsinline muted></video>
+<canvas class="overlay" id="overlay"></canvas>
+<div class="camera-placeholder" id="placeholder"><div><strong>Camera preview</strong>Start the camera to detect your hand.</div></div>
+</div>
+<div class="camera-footer"><span id="cameraInfo">Camera not started</span><span>Processing locally in browser</span></div>
+<div class="stats">
+<div class="stat"><small>Hands detected</small><strong id="hands">0</strong></div>
+<div class="stat"><small>Gesture</small><strong id="gesture" style="font-size:14px">None</strong></div>
+<div class="stat"><small>Clicks</small><strong id="clicks">0</strong></div>
+</div>
+</div>
+
+<div class="panel">
+<div class="panel-head"><h2>Gesture workspace</h2><span class="tag">INTERACTIVE</span></div>
+<div class="stage" id="stage">
+<div class="stage-grid"></div>
+<div class="demo-content">
+<div style="font-size:34px">✦</div>
+<h3 id="demoTitle">Welcome to HandCtrl</h3>
+<p id="demoText">Move your index finger to control the glowing cursor.</p>
+<button class="demo-target" id="demoButton">Pinch to activate</button>
+<button class="demo-target" id="resetButton">Reset demo</button>
+</div>
+<div id="cursor"></div>
+</div>
+<div class="camera-footer"><span>Index finger = move</span><span>Thumb + index pinch = click</span></div>
+</div>
+</section>
+
+<section class="instructions">
+<div class="instruction"><b>01 / MOVE</b><p>Raise your index finger. Move your hand to move the cursor in the workspace.</p></div>
+<div class="instruction"><b>02 / PINCH</b><p>Bring your thumb and index fingertip together to click a workspace button.</p></div>
+<div class="instruction"><b>03 / STOP</b><p>Use Stop to turn off the camera and release the webcam stream.</p></div>
+</section>
+<p style="font-size:12px;margin-top:22px">Privacy: video is processed in your browser. This demo does not upload or store camera footage. Camera access requires your permission.</p>
+</main>
+<footer>HANDCTRL · Browser-based gesture interaction · Powered by MediaPipe</footer>
+
+<script type="module">
+import { FilesetResolver, HandLandmarker }
+from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs";
+
+const $ = id => document.getElementById(id);
+const video=$("video"), overlay=$("overlay"), ctx=overlay.getContext("2d");
+const stage=$("stage"), cursor=$("cursor");
+let stream=null, landmarker=null, running=false, raf=0, lastTime=-1;
+let clickCount=0, wasPinching=false, lastClick=0;
+
+const connections=[
+[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
+[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],
+[13,17],[17,18],[18,19],[19,20],[0,17]
+];
+
+function status(text,active=false){
+ $("statusText").textContent=text;
+ $("statusDot").style.background=active?"#54e6a0":"#65758b";
+}
+function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function drawHand(points){
+ ctx.clearRect(0,0,overlay.width,overlay.height);
+ if(!points)return;
+ ctx.lineWidth=3;ctx.strokeStyle="#53e4e8";
+ connections.forEach(([a,b])=>{
+  ctx.beginPath();ctx.moveTo(points[a].x*overlay.width,points[a].y*overlay.height);
+  ctx.lineTo(points[b].x*overlay.width,points[b].y*overlay.height);ctx.stroke();
+ });
+ points.forEach(p=>{
+  ctx.beginPath();ctx.arc(p.x*overlay.width,p.y*overlay.height,4,0,Math.PI*2);
+  ctx.fillStyle="#54e6a0";ctx.fill();
+ });
+}
+function handleClick(x,y){
+ const rect=stage.getBoundingClientRect();
+ const el=document.elementFromPoint(rect.left+x,rect.top+y);
+ const target=el?.closest(".demo-target");
+ if(target && stage.contains(target)){
+  target.click();
+  clickCount++;
+  $("clicks").textContent=clickCount;
+ }
+}
+function loop(){
+ if(!running)return;
+ if(video.readyState>=2 && video.currentTime!==lastTime){
+  lastTime=video.currentTime;
+  const result=landmarker.detectForVideo(video,performance.now());
+  const points=result.landmarks?.[0];
+  $("hands").textContent=result.landmarks?.length||0;
+  if(points){
+   drawHand(points);
+   const index=points[8], thumb=points[4];
+   const x=Math.max(0,Math.min(1,(1-index.x)));
+   const y=Math.max(0,Math.min(1,index.y));
+   const px=x*stage.clientWidth, py=y*stage.clientHeight;
+   cursor.style.display="block";
+   cursor.style.left=px+"px";cursor.style.top=py+"px";
+   const pinching=distance(index,thumb)<0.055;
+   $("gesture").textContent=pinching?"Pinch":"Tracking";
+   cursor.classList.toggle("pinch",pinching);
+   if(pinching && !wasPinching && performance.now()-lastClick>550){
+    handleClick(px,py);lastClick=performance.now();
+   }
+   wasPinching=pinching;
+   $("trackingTag").textContent=pinching?"PINCH":"TRACKING";
+  }else{
+   ctx.clearRect(0,0,overlay.width,overlay.height);
+   cursor.style.display="none";wasPinching=false;
+   $("gesture").textContent="None";$("trackingTag").textContent="NO HAND";
+  }
+ }
+ raf=requestAnimationFrame(loop);
+}
+
+$("demoButton").addEventListener("click",()=>{
+ $("demoTitle").textContent="Gesture detected!";
+ $("demoText").textContent="Your pinch successfully activated this browser control.";
+ $("demoButton").textContent="Activated ✓";
+ $("demoButton").classList.add("active");
+});
+$("resetButton").addEventListener("click",()=>{
+ $("demoTitle").textContent="Welcome to HandCtrl";
+ $("demoText").textContent="Move your index finger to control the glowing cursor.";
+ $("demoButton").textContent="Pinch to activate";
+ $("demoButton").classList.remove("active");
+});
+
+$("startBtn").addEventListener("click",async()=>{
+ $("startBtn").disabled=true;
+ status("Loading hand tracking...");
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error("Camera API unavailable. Open this site over HTTPS in a supported browser.");
+  if(!landmarker){
+   const vision=await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+   );
+   landmarker=await HandLandmarker.createFromOptions(vision,{
+    baseOptions:{
+     modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+     delegate:"GPU"
+    },
+    runningMode:"VIDEO",numHands:1
+   });
+  }
+  stream=await navigator.mediaDevices.getUserMedia({
+   video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},
+   audio:false
+  });
+  video.srcObject=stream;
+  await video.play();
+  overlay.width=video.videoWidth;overlay.height=video.videoHeight;
+  $("placeholder").style.display="none";
+  $("cameraInfo").textContent=video.videoWidth+" × "+video.videoHeight;
+  $("startBtn").disabled=true;$("stopBtn").disabled=false;
+  $("trackingTag").textContent="READY";
+  $("trackingTag").style.color="#54e6a0";
+  running=true;lastTime=-1;status("Camera active",true);loop();
+ }catch(error){
+  console.error(error);
+  status("Camera unavailable");
+  $("startBtn").disabled=false;
+  alert("Could not start camera or hand tracking: "+error.message+
+  "\n\nAllow camera permission and try again. Check your internet connection for the model download.");
+ }
+});
+
+function stop(){
+ running=false;cancelAnimationFrame(raf);
+ if(stream)stream.getTracks().forEach(t=>t.stop());
+ stream=null;video.srcObject=null;
+ ctx.clearRect(0,0,overlay.width,overlay.height);
+ $("placeholder").style.display="grid";cursor.style.display="none";
+ $("hands").textContent="0";$("gesture").textContent="None";
+ $("trackingTag").textContent="WAITING";
+ $("cameraInfo").textContent="Camera not started";
+ $("startBtn").disabled=false;$("stopBtn").disabled=true;
+ wasPinching=false;status("Camera disconnected");
+}
+$("stopBtn").addEventListener("click",stop);
+window.addEventListener("pagehide",stop);
+</script>
+</body>
+</html>
